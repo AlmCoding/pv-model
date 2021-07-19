@@ -12,15 +12,6 @@ def flatten(l: list):
     return res
 
 
-def flatten_gen(l: list):
-    for e in l:
-        if isinstance(e, list):
-            for re in flatten_gen(e):
-                yield re
-        else:
-            yield e
-
-
 if __name__ == '__main__':
     pv_inclination = 10  # 10 grad
     pv_rotation = 25  # 25 grad
@@ -31,9 +22,8 @@ if __name__ == '__main__':
     atmospheric_attenuation_zenith = 0.73    # ~70% direct + ~3% scatter
     atmospheric_attenuation_horizon = 0.22   # ?
 
-    df = pd.read_csv('Straubing.csv', sep=';')
+    df = pd.read_csv('straubing.csv', sep=';')
     df.columns = ["date"] + flatten([[f"{i}:00 alt", f"{i}:00 rot"] for i in range(24)]) + ['none']
-    # df.columns = ["date"] + list(flatten_gen([[f"{i}:00 alt", f"{i}:00 rot"] for i in range(24)])) + ['none']
     del df['none']
     df = df.replace(r'--', 0.0)
     print(df.head)
