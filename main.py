@@ -12,6 +12,25 @@ def flatten(l: list):
     return res
 
 
+class Converter:
+    def __init__(self, df_sunny_hours: pd.DataFrame):
+        self.df_sunny_hours = df_sunny_hours
+
+    """
+    def get_month(self, ds: pd.Series):
+        return int(ds[0].split("-")[1])
+
+    def sunny_day_hours(self, month: int):
+        return self.df_sunny_hours.iloc[month-1]["SunDuration"]
+    """
+
+    def convert(self, ds: pd.Series):
+        month = int(ds[0].split("-")[1])
+        daly_sun_hours = self.df_sunny_hours.iloc[month-1]["SunDuration"] / 30
+        # ds = 0
+        return ds
+
+
 if __name__ == '__main__':
     pv_inclination = 10  # 10 grad
     pv_rotation = 25  # 25 grad
@@ -58,10 +77,10 @@ if __name__ == '__main__':
         effective_sun_altitude[effective_sun_altitude <= minimal_effective_sun_altitude] = 0.0
 
         # Drop zero columns
-        if sum(effective_sun_altitude) > 0.0:
-            column_name = df.columns[sun_alt_column]
-            dfn_sun_altitude[column_name] = effective_sun_altitude
-            dfn_atm_attenuation[column_name] = atmospheric_attenuation
+        # if sum(effective_sun_altitude) > 0.0:
+        column_name = df.columns[sun_alt_column]
+        dfn_sun_altitude[column_name] = effective_sun_altitude
+        dfn_atm_attenuation[column_name] = atmospheric_attenuation
 
     # Load sun duration averages
     df_hours = pd.read_csv('sunnydays_straubing.csv', sep='\t', decimal=",")
@@ -78,7 +97,10 @@ if __name__ == '__main__':
         total = total.sum() / total.shape[0]
         df_mean_hours = df_mean_hours.append(total, ignore_index=True)
 
-    # Create sun map
+    # Create weather attenuation
+    conv = Converter(df_mean_hours)
+    dfn_weather_attenuation = dfn_atm_attenuation.copy()
+    dfn_weather_attenuation = dfn_atm_attenuation.apply(conv.convert, axis=1)
 
     for i in range(dfn_sun_altitude.shape[0]):
         day = dfn_sun_altitude.iloc[i, :]
