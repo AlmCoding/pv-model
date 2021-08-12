@@ -15,6 +15,7 @@ def flatten(l: list):
 class Converter:
     def __init__(self, df_sunny_hours: pd.DataFrame):
         self.df_sunny_hours = df_sunny_hours
+        self.fill_order = [13, 12, 14, 11, 15, 10, 16, 9, 17, 8]
 
     """
     def get_month(self, ds: pd.Series):
@@ -27,8 +28,22 @@ class Converter:
     def convert(self, ds: pd.Series):
         month = int(ds[0].split("-")[1])
         daly_sun_hours = self.df_sunny_hours.iloc[month-1]["SunDuration"] / 30
-        # ds = 0
+
+        ds_sun = ds.copy()
+        ds_sun[1:] = 0.0
+
+        for i in self.fill_order:
+            idx = i + 1
+            if daly_sun_hours >= 1.0:
+                ds_sun[idx] = 1.0
+                daly_sun_hours -= 1
+            elif daly_sun_hours > 0.0:
+                ds_sun[idx] = daly_sun_hours
+            else:
+                break
+
         return ds
+
 
 
 if __name__ == '__main__':
@@ -39,7 +54,7 @@ if __name__ == '__main__':
     pv_efficiency = 0.2
     e0_space = 1361  # [W/m2]
     atmospheric_attenuation_zenith = 0.73    # ~70% direct + ~3% scatter
-    atmospheric_attenuation_horizon = 0.22   # ?
+    atmospheric_attenuation_horizon = 0.20   # ?
 
     df = pd.read_csv('straubing.csv', sep=';')
     df.columns = ["date"] + flatten([[f"{i}:00 alt", f"{i}:00 rot"] for i in range(24)]) + ['none']
@@ -102,8 +117,11 @@ if __name__ == '__main__':
     dfn_weather_attenuation = dfn_atm_attenuation.copy()
     dfn_weather_attenuation = dfn_atm_attenuation.apply(conv.convert, axis=1)
 
+    a = 12
+"""
     for i in range(dfn_sun_altitude.shape[0]):
         day = dfn_sun_altitude.iloc[i, :]
         date = day[0]
         inclinations = day[1:]
         a = 12
+"""
