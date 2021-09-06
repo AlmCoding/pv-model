@@ -39,11 +39,9 @@ class Converter:
                 daly_sun_hours -= 1
             elif daly_sun_hours > 0.0:
                 ds_sun[idx] = daly_sun_hours
-            else:
                 break
 
-        return ds
-
+        return ds_sun
 
 
 if __name__ == '__main__':
@@ -114,14 +112,9 @@ if __name__ == '__main__':
 
     # Create weather attenuation
     conv = Converter(df_mean_hours)
-    dfn_weather_attenuation = dfn_atm_attenuation.copy()
     dfn_weather_attenuation = dfn_atm_attenuation.apply(conv.convert, axis=1)
 
+    dfn_total_attenuation = dfn_atm_attenuation.iloc[:, 1:] * dfn_weather_attenuation.iloc[:, 1:]
+    dfn_total_attenuation.insert(0, "date", dfn_atm_attenuation.iloc[:, 0])
+
     a = 12
-"""
-    for i in range(dfn_sun_altitude.shape[0]):
-        day = dfn_sun_altitude.iloc[i, :]
-        date = day[0]
-        inclinations = day[1:]
-        a = 12
-"""
