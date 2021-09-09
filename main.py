@@ -30,15 +30,17 @@ class Converter:
         daly_sun_hours = self.df_sunny_hours.iloc[month-1]["SunDuration"] / 30
 
         ds_sun = ds.copy()
-        ds_sun[1:] = 0.0
+        ds_sun[1:] = 0.2
 
         for i in self.fill_order:
             idx = i + 1
             if daly_sun_hours >= 1.0:
                 ds_sun[idx] = 1.0
                 daly_sun_hours -= 1
-            elif daly_sun_hours > 0.0:
+            elif daly_sun_hours > 0.2:
                 ds_sun[idx] = daly_sun_hours
+                daly_sun_hours = 0
+            else:
                 break
 
         return ds_sun
@@ -47,13 +49,13 @@ class Converter:
 if __name__ == '__main__':
     # pv_area = 30    # m2
     pv_inclination = 10  # 10 grad
-    pv_rotation = 25  # 25 grad
+    pv_rotation = 35  # 35 grad
 
-    minimal_effective_sun_altitude = 1
-    pv_efficiency = 0.2
+    minimal_effective_sun_altitude = 0
+    pv_efficiency = 0.18
     e0_space = 1.361  # [kW/m2]
-    atmospheric_attenuation_zenith = 0.73    # ~70% direct + ~3% scatter
-    atmospheric_attenuation_horizon = 0.20   # ?
+    atmospheric_attenuation_zenith = 0.70    # ~70% direct + ~3% scatter
+    atmospheric_attenuation_horizon = 0.25   # ?
 
     df = pd.read_csv('straubing.csv', sep=';')
     df.columns = ["date"] + flatten([[f"{i}:00 alt", f"{i}:00 rot"] for i in range(24)]) + ['none']
@@ -115,7 +117,8 @@ if __name__ == '__main__':
     conv = Converter(df_mean_hours)
     dfn_weather_attenuation = dfn_atm_attenuation.apply(conv.convert, axis=1)
 
-    dfn_total_attenuation = dfn_atm_attenuation.iloc[:, 1:] * dfn_weather_attenuation.iloc[:, 1:]
+    # Compute total attenuation
+    dfn_total_attenuation = 5.5 * dfn_atm_attenuation.iloc[:, 1:] * dfn_weather_attenuation.iloc[:, 1:]
 
     dfn_energy = e0_space * dfn_total_attenuation * np.sin(np.deg2rad(dfn_sun_altitude.iloc[:, 1:])) * pv_efficiency
     dfn_energy.insert(0, "date", dfn_atm_attenuation.iloc[:, 0])
@@ -123,6 +126,7 @@ if __name__ == '__main__':
     dfn_energy_days = dfn_energy.iloc[:, 1:].sum(axis=1)
     dfn_energy_days = pd.DataFrame({"date": dfn_atm_attenuation.iloc[:, 0], "energy": dfn_energy_days})
     total_energy = dfn_energy_days.iloc[:, 1:].sum()
+    print("Total energy:", total_energy, "kWh")
 
     energy_months = {}
     months = ["Jan", "Feb", "Mar", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
@@ -141,7 +145,7 @@ if __name__ == '__main__':
     pal = sns.color_palette("ch:start=.2,rot=-.3", 12)
     rank = np.argsort(-dfn_energy_months.iloc[0, :]).argsort()  # http://stackoverflow.com/a/6266510/1628638
     p = sns.barplot(x=dfn_energy_months.columns, y=dfn_energy_months.iloc[0, :], palette=np.array(pal[::-1])[rank])
-    p.set_title("Energy/m2")
+    p.set_title("Energy/kWp")
     p.set_ylabel("Energy [kWh]")
     plt.show()
 
